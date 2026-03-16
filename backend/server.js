@@ -38,6 +38,10 @@ app.use('/api/diets', require('./routes/dietRoutes'));
 app.use('/api/appointments', require('./routes/appointmentRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
+// Initialize Reminder Scheduler
+const { initReminderScheduler } = require('./utils/reminderScheduler');
+initReminderScheduler();
+
 // Basic route for testing
 app.get('/', (req, res) => {
   res.send('HealthMate API is running. Note: DB connection is currently commented out.');

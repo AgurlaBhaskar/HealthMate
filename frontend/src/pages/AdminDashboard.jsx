@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Calendar, Utensils, Activity, Trash2, PieChart, ShieldAlert, Search, Download, ChevronRight, Settings, Lock, HeartPulse } from 'lucide-react';
 import axiosConfig from '../api/axiosConfig';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import dashboardBg from '../assets/backgrounds/dashboard_bg.png';
 
@@ -52,7 +52,7 @@ export default function AdminDashboard() {
     try {
       await axiosConfig.put(`/admin/users/${userId}/role`, { role: newRole });
       setUsers(users.map(u => u._id === userId ? { ...u, role: newRole } : u));
-    } catch (err) {
+    } catch {
       alert('Failed to update role');
     }
   };
@@ -64,7 +64,7 @@ export default function AdminDashboard() {
         setUsers(users.filter(u => u._id !== id));
         const statsRes = await axiosConfig.get('/admin/stats');
         setStats(statsRes.data);
-      } catch (err) {
+      } catch {
         alert('Failed to delete user');
       }
     }
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
         await axiosConfig.delete(`/admin/appointments/${id}`);
         setAppointments(appointments.filter(a => a._id !== id));
         setStats({ ...stats, appointments: stats.appointments - 1 });
-      } catch (err) { alert('Failed to delete'); }
+      } catch { alert('Failed to delete'); }
     }
   };
 
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
         await axiosConfig.delete(`/admin/diets/${id}`);
         setDiets(diets.filter(d => d._id !== id));
         setStats({ ...stats, diets: stats.diets - 1 });
-      } catch (err) { alert('Failed to delete'); }
+      } catch { alert('Failed to delete'); }
     }
   };
 
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
         await axiosConfig.delete(`/admin/activities/${id}`);
         setActivities(activities.filter(a => a._id !== id));
         setStats({ ...stats, activities: stats.activities - 1 });
-      } catch (err) { alert('Failed to delete'); }
+      } catch { alert('Failed to delete'); }
     }
   };
 
@@ -196,38 +196,49 @@ export default function AdminDashboard() {
                     {users.filter(u => 
                       u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                       u.email.toLowerCase().includes(searchQuery.toLowerCase())
-                    ).map(user => (
-                      <tr key={user._id} className="group hover:bg-white/50 transition-colors">
-                        <td className="px-8 py-6 font-black text-slate-900">{user.name}</td>
-                        <td className="px-8 py-6 text-slate-500 font-medium italic">{user.email}</td>
-                        <td className="px-8 py-6">
-                          <div className="relative inline-block">
-                            <select 
-                              value={user.role} 
-                              onChange={(e) => handleUpdateRole(user._id, e.target.value)}
-                              className={`pl-3 pr-8 py-2 rounded-xl text-[10px] font-black uppercase ring-1 ring-inset appearance-none cursor-pointer focus:ring-2 transition-all ${user.role === 'admin' ? 'bg-rose-50 text-rose-600 ring-rose-200' : 'bg-slate-50 text-slate-600 ring-slate-200'}`}
-                            >
-                              <option value="user">USER</option>
-                              <option value="admin">ADMIN</option>
-                              <option value="trainer">TRAINER</option>
-                              <option value="nutritionist">NUTRITIONIST</option>
-                            </select>
-                            <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-current rotate-90" />
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 text-slate-400 font-medium text-xs">{new Date(user.createdAt).toLocaleDateString()}</td>
-                        <td className="px-8 py-6 text-right">
-                          {user._id !== currentUser.user.id && (
-                            <button 
-                              onClick={() => handleDeleteUser(user._id)}
-                              className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          )}
+                    ).length > 0 ? (
+                      users.filter(u => 
+                        u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        u.email.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).map(user => (
+                        <tr key={user._id} className="group hover:bg-white/50 transition-colors">
+                          <td className="px-8 py-6 font-black text-slate-900">{user.name}</td>
+                          <td className="px-8 py-6 text-slate-500 font-medium italic">{user.email}</td>
+                          <td className="px-8 py-6">
+                            <div className="relative inline-block">
+                              <select 
+                                value={user.role} 
+                                onChange={(e) => handleUpdateRole(user._id, e.target.value)}
+                                className={`pl-3 pr-8 py-2 rounded-xl text-[10px] font-black uppercase ring-1 ring-inset appearance-none cursor-pointer focus:ring-2 transition-all ${user.role === 'admin' ? 'bg-rose-50 text-rose-600 ring-rose-200' : 'bg-slate-50 text-slate-600 ring-slate-200'}`}
+                              >
+                                <option value="user">USER</option>
+                                <option value="admin">ADMIN</option>
+                                <option value="trainer">TRAINER</option>
+                                <option value="nutritionist">NUTRITIONIST</option>
+                              </select>
+                              <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-current rotate-90" />
+                            </div>
+                          </td>
+                          <td className="px-8 py-6 text-slate-400 font-medium text-xs">{new Date(user.createdAt).toLocaleDateString()}</td>
+                          <td className="px-8 py-6 text-right">
+                            {user._id !== currentUser.user.id && (
+                              <button 
+                                onClick={() => handleDeleteUser(user._id)}
+                                className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="px-8 py-12 text-center text-slate-400 font-bold italic">
+                          No nodes found matching your sequence.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -244,34 +255,44 @@ export default function AdminDashboard() {
                 {appointments.filter(a => 
                   a.providerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                   a.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-                ).map(app => (
-                  <div key={app._id} className="flex items-center justify-between p-6 bg-slate-50/50 rounded-[2rem] border border-white hover:border-brand-200 transition-all group">
-                    <div className="flex items-center gap-6">
-                      <div className="w-14 h-14 bg-white shadow-xl rounded-2xl flex items-center justify-center font-black text-brand-600 text-xl border border-brand-50">
-                        {app.user?.name ? app.user.name[0] : 'U'}
+                ).length > 0 ? (
+                  appointments.filter(a => 
+                    a.providerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    a.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).map(app => (
+                    <div key={app._id} className="flex items-center justify-between p-6 bg-slate-50/50 rounded-[2rem] border border-white hover:border-brand-200 transition-all group">
+                      <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-white shadow-xl rounded-2xl flex items-center justify-center font-black text-brand-600 text-xl border border-brand-50">
+                          {app.user?.name ? app.user.name[0] : 'U'}
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 text-lg tracking-tight">{app.providerName}</p>
+                          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">SUBJECT: {app.user?.name || 'GENERIC NODE'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-black text-slate-900 text-lg tracking-tight">{app.providerName}</p>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">SUBJECT: {app.user?.name || 'GENERIC NODE'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-8">
-                       <div className="text-right">
-                         <p className="font-black text-slate-900">{new Date(app.date).toLocaleDateString()}</p>
-                         <div className="flex items-center gap-2 justify-end mt-1">
-                            <div className={`w-2 h-2 rounded-full ${app.status === 'Completed' ? 'bg-emerald-500' : 'bg-brand-500'} animate-pulse`} />
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">{app.status}</span>
+                      <div className="flex items-center gap-8">
+                         <div className="text-right">
+                           <p className="font-black text-slate-900">{new Date(app.date).toLocaleDateString()}</p>
+                           <div className="flex items-center gap-2 justify-end mt-1">
+                              <div className={`w-2 h-2 rounded-full ${app.status === 'Completed' ? 'bg-emerald-500' : 'bg-brand-500'} animate-pulse`} />
+                              <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">{app.status}</span>
+                           </div>
                          </div>
-                       </div>
-                       <button 
-                         onClick={() => handleDeleteAppointment(app._id)}
-                         className="p-4 bg-white text-slate-300 hover:text-rose-500 rounded-2xl opacity-0 group-hover:opacity-100 transition-all shadow-sm"
-                       >
-                         <Trash2 className="w-5 h-5" />
-                       </button>
+                         <button 
+                           onClick={() => handleDeleteAppointment(app._id)}
+                           className="p-4 bg-white text-slate-300 hover:text-rose-500 rounded-2xl opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                         >
+                           <Trash2 className="w-5 h-5" />
+                         </button>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="p-12 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
+                    <Calendar className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-400 font-black uppercase tracking-widest text-xs">No schedules match your search parameters.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
@@ -286,20 +307,34 @@ export default function AdminDashboard() {
                    </h3>
                  </div>
                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                    {diets.map(diet => (
-                      <div key={diet._id} className="p-5 bg-white/50 rounded-2xl border border-white flex justify-between items-center group">
-                        <div>
-                          <p className="font-black text-slate-900">{diet.foodItem}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase">{diet.user?.name || 'NODE'} • {diet.mealType}</p>
+                    {diets.filter(diet => 
+                      diet.foodItem.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      diet.mealType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      diet.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).length > 0 ? (
+                      diets.filter(diet => 
+                        diet.foodItem.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        diet.mealType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        diet.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).map(diet => (
+                        <div key={diet._id} className="p-5 bg-white/50 rounded-2xl border border-white flex justify-between items-center group">
+                          <div>
+                            <p className="font-black text-slate-900">{diet.foodItem}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">{diet.user?.name || 'NODE'} • {diet.mealType}</p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="font-black text-emerald-600 text-sm italic">{diet.calories} kcal</span>
+                            <button onClick={() => handleDeleteDiet(diet._id)} className="p-2 text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
+                               <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className="font-black text-emerald-600 text-sm italic">{diet.calories} kcal</span>
-                          <button onClick={() => handleDeleteDiet(diet._id)} className="p-2 text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
-                             <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 font-bold italic border border-dashed border-slate-100 rounded-2xl">
+                        No nutrition logs found matching your search.
                       </div>
-                    ))}
+                    )}
                  </div>
               </div>
 
@@ -311,20 +346,32 @@ export default function AdminDashboard() {
                    </h3>
                  </div>
                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                    {activities.map(act => (
-                      <div key={act._id} className="p-5 bg-white/50 rounded-2xl border border-white flex justify-between items-center group">
-                        <div>
-                          <p className="font-black text-slate-900">{act.type}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase">{act.user?.name || 'NODE'} • {act.duration}m</p>
+                    {activities.filter(act => 
+                      act.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      act.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).length > 0 ? (
+                      activities.filter(act => 
+                        act.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        act.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).map(act => (
+                        <div key={act._id} className="p-5 bg-white/50 rounded-2xl border border-white flex justify-between items-center group">
+                          <div>
+                            <p className="font-black text-slate-900">{act.type}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">{act.user?.name || 'NODE'} • {act.duration}m</p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="font-black text-orange-600 text-sm italic">{act.caloriesBurned} kcal</span>
+                            <button onClick={() => handleDeleteActivity(act._id)} className="p-2 text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
+                               <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className="font-black text-orange-600 text-sm italic">{act.caloriesBurned} kcal</span>
-                          <button onClick={() => handleDeleteActivity(act._id)} className="p-2 text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
-                             <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 font-bold italic border border-dashed border-slate-100 rounded-2xl">
+                        No activity logs found matching your search.
                       </div>
-                    ))}
+                    )}
                  </div>
               </div>
             </div>

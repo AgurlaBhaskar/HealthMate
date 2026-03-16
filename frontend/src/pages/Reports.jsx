@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Activity, Apple, TrendingUp, Filter, Download, Zap, PieChart } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
+import { useAuth } from '../hooks/useAuth';
 import axiosConfig from '../api/axiosConfig';
 import reportsBg from '../assets/backgrounds/reports_bg.png';
 
@@ -11,26 +13,91 @@ export default function Reports() {
   const [activityData, setActivityData] = useState([]);
   const [dietData, setDietData] = useState([]);
   const [stats, setStats] = useState({ avgBurn: 0, avgIntake: 0, avgProtein: 0 });
-  const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const reportRef = useRef(null);
+
+  const handleDownload = async () => {
+    if (!reportRef.current || downloading) return;
+    
+    // Save current scroll position
+    const scrollY = window.scrollY;
+    
+    try {
+      setDownloading(true);
+      console.log("HealthMate: Starting Export...");
+      
+      // Scroll to top to ensure complete capture
+      window.scrollTo(0, 0);
+      
+      // Wait for layout to settle and animations to finish
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const captureElement = document.getElementById('health-report-main-content');
+      if (!captureElement) throw new Error("Report content not found");
+
+      // Set to white background and hide ignore elements before capture
+      const options = {
+        backgroundColor: '#ffffff',
+        style: {
+          borderRadius: '0',
+          transform: 'none',
+          animation: 'none'
+        },
+        filter: (node) => {
+          return node.getAttribute?.('data-html2canvas-ignore') !== 'true';
+        }
+      };
+
+      console.log("HealthMate: Capturing PNG...");
+      const dataUrl = await htmlToImage.toPng(captureElement, options);
+      
+      console.log("HealthMate: Creating PDF...");
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      
+      // Add a small margin
+      const margin = 5;
+      const contentWidth = pdfWidth - (margin * 2);
+      const contentHeight = (captureElement.offsetHeight * contentWidth) / captureElement.offsetWidth;
+      
+      pdf.addImage(dataUrl, 'PNG', margin, margin, contentWidth, contentHeight);
+      
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `HealthMate_Report_${timeframe}_${timestamp}.pdf`;
+      
+      pdf.save(filename);
+      console.log("HealthMate: Download complete!");
+      alert(`Report Downloaded Successfully: ${filename}`);
+      
+    } catch (error) {
+      console.error("HealthMate Download Error:", error);
+      alert(`Download Failed: ${error.message || 'Error creating PDF'}\n\nPlease try again or use a different browser.`);
+    } finally {
+      // Restore scroll
+      window.scrollTo(0, scrollY);
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchAnalytics = async () => {
       if (!currentUser?.user?.id) return;
       
       try {
-        setLoading(true);
         const [activitiesRes, dietsRes] = await Promise.all([
           axiosConfig.get(`/activities/user/${currentUser.user.id}`),
           axiosConfig.get(`/diets/user/${currentUser.user.id}`)
         ]);
 
+        const daysToFetch = timeframe === 'weekly' ? 7 : 30;
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const last7Days = Array.from({ length: 7 }, (_, i) => {
+        
+        const analyticsData = Array.from({ length: daysToFetch }, (_, i) => {
           const d = new Date();
-          d.setDate(d.getDate() - (6 - i));
+          d.setDate(d.getDate() - (daysToFetch - 1 - i));
           return {
             fullDate: d.toLocaleDateString(),
-            dayName: days[d.getDay()],
+            dayName: daysToFetch <= 7 ? days[d.getDay()] : d.getDate().toString(),
             calories: 0,
             duration: 0,
             intake: 0,
@@ -41,7 +108,7 @@ export default function Reports() {
 
         activitiesRes.data.forEach(act => {
           const actDate = new Date(act.date).toLocaleDateString();
-          const dayObj = last7Days.find(d => d.fullDate === actDate);
+          const dayObj = analyticsData.find(d => d.fullDate === actDate);
           if (dayObj) {
             dayObj.calories += act.caloriesBurned || 0;
             dayObj.duration += act.duration || 0;
@@ -50,35 +117,33 @@ export default function Reports() {
 
         dietsRes.data.forEach(diet => {
           const dietDate = new Date(diet.date).toLocaleDateString();
-          const dayObj = last7Days.find(d => d.fullDate === dietDate);
+          const dayObj = analyticsData.find(d => d.fullDate === dietDate);
           if (dayObj) {
             dayObj.intake += diet.calories || 0;
             dayObj.protein += diet.protein || 0;
           }
         });
 
-        setActivityData(last7Days.map(d => ({ day: d.dayName, calories: d.calories, duration: d.duration })));
-        setDietData(last7Days.map(d => ({ day: d.dayName, calories: d.intake, protein: d.protein, goal: d.goal })));
+        setActivityData(analyticsData.map(d => ({ day: d.dayName, calories: d.calories, duration: d.duration })));
+        setDietData(analyticsData.map(d => ({ day: d.dayName, calories: d.intake, protein: d.protein, goal: d.goal })));
 
-        const totalBurn = last7Days.reduce((sum, d) => sum + d.calories, 0);
-        const totalIntake = last7Days.reduce((sum, d) => sum + d.intake, 0);
-        const totalProtein = last7Days.reduce((sum, d) => sum + d.protein, 0);
+        const totalBurn = analyticsData.reduce((sum, d) => sum + d.calories, 0);
+        const totalIntake = analyticsData.reduce((sum, d) => sum + d.intake, 0);
+        const totalProtein = analyticsData.reduce((sum, d) => sum + d.protein, 0);
 
         setStats({
-          avgBurn: Math.round(totalBurn / 7),
-          avgIntake: Math.round(totalIntake / 7),
-          avgProtein: Math.round(totalProtein / 7)
+          avgBurn: Math.round(totalBurn / daysToFetch),
+          avgIntake: Math.round(totalIntake / daysToFetch),
+          avgProtein: Math.round(totalProtein / daysToFetch)
         });
 
       } catch (err) {
         console.error("Failed to fetch analytics", err);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchAnalytics();
-  }, [currentUser]);
+  }, [currentUser, timeframe]);
 
   return (
     <>
@@ -92,7 +157,7 @@ export default function Reports() {
       <div className="fixed top-20 right-[5%] w-[35%] h-[35%] bg-blue-500/10 blur-[130px] rounded-full animate-float" />
       <div className="fixed bottom-20 left-[-5%] w-[45%] h-[45%] bg-purple-500/10 blur-[150px] rounded-full animate-float" style={{ animationDelay: '-4s' }} />
 
-      <div className="max-w-7xl mx-auto py-12 px-6 relative animate-slide-up">
+      <div id="health-report-main-content" ref={reportRef} className="max-w-7xl mx-auto py-12 px-6 relative animate-slide-up">
         <header className="flex flex-col md:flex-row items-center justify-between mb-12 gap-8">
           <div className="text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-4 mb-4">
@@ -106,8 +171,8 @@ export default function Reports() {
             <p className="text-lg text-slate-500 font-medium">Deep data analysis of your physical and nutritional evolution.</p>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="flex bg-white/50 backdrop-blur-xl p-1.5 rounded-2xl border border-white shadow-xl">
+          <div className="flex items-center gap-4" data-html2canvas-ignore="true">
+            <div className="flex items-center bg-white/50 backdrop-blur-xl p-1.5 rounded-2xl border border-white shadow-xl">
               <button 
                 onClick={() => setTimeframe('weekly')}
                 className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${timeframe === 'weekly' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/50'}`}
@@ -115,14 +180,24 @@ export default function Reports() {
                 Weekly
               </button>
               <button 
-                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-slate-300 cursor-not-allowed`}
+                onClick={() => setTimeframe('monthly')}
+                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${timeframe === 'monthly' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:bg-white/50'}`}
               >
                 Monthly
               </button>
+              
+              <div className="w-px h-8 bg-slate-200 mx-2" />
+              
+              <button 
+                onClick={handleDownload}
+                disabled={downloading}
+                title="Download PDF Report"
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${downloading ? 'bg-slate-100 text-slate-400 cursor-wait' : 'text-indigo-600 hover:bg-indigo-50 active:scale-95'}`}
+              >
+                <Download className={`w-4 h-4 ${downloading ? 'animate-bounce' : ''}`} />
+                {downloading ? 'Processing...' : 'Download'}
+              </button>
             </div>
-            <button className="p-4 bg-white rounded-2xl border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
-              <Download className="w-5 h-5" />
-            </button>
           </div>
         </header>
 

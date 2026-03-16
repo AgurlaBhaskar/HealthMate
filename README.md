@@ -61,4 +61,4 @@ HealthMate is a comprehensive MERN (MongoDB, Express, React, Node.js) stack appl
 
 ## 👤 Author
 
-[Your Name/GitHub Profile]
+Agurla Bhaskar

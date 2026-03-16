@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { UserPlus, Mail, Lock, User, Ruler, Weight, Target, ArrowRight, AlertCircle } from 'lucide-react';
 import axiosConfig from '../api/axiosConfig';
 import authBg from '../assets/backgrounds/auth_bg.png';

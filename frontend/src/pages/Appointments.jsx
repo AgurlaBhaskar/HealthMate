@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CalendarHeart, Plus, Video, MapPin, X, User, Clock, ChevronRight } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import axiosConfig from '../api/axiosConfig';
 import apptBg from '../assets/backgrounds/appointments_bg.png';
 

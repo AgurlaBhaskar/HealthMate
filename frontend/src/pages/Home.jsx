@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { Activity, Apple, CalendarHeart, Sparkles } from 'lucide-react';
 import homeBg from '../assets/backgrounds/home_bg.png';
 

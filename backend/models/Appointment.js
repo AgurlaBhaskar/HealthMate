@@ -8,7 +8,8 @@ const appointmentSchema = new mongoose.Schema({
   time: { type: String, required: true },
   mode: { type: String, enum: ['Video Call', 'In-person'], default: 'Video Call' },
   status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled'], default: 'Scheduled' },
-  notes: { type: String }
+  notes: { type: String },
+  reminderSent: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Appointment', appointmentSchema);

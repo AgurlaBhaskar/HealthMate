@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Apple, Plus, PieChart, Info, X, Utensils, Zap } from 'lucide-react';
 import Confetti from 'react-confetti';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import axiosConfig from '../api/axiosConfig';
 import dietBg from '../assets/backgrounds/diet_bg.png';
 
@@ -88,7 +88,7 @@ export default function Diet() {
       const timer = setTimeout(() => setShowConfetti(false), 6000);
       return () => clearTimeout(timer);
     }
-  }, [totals.protein, totals.cal, meals.length]);
+  }, [totals.protein, totals.cal, meals.length, GOALS.protein, GOALS.cal]);
 
   const handleAddMeal = async (e) => {
     e.preventDefault();

@@ -10,7 +10,9 @@ const userSchema = new mongoose.Schema({
   bmi: { type: Number },
   fitnessGoal: { type: String }, // e.g., 'Weight Loss', 'Muscle Gain', 'Maintain'
   medicalInfo: { type: String },
-  role: { type: String, enum: ['user', 'admin', 'trainer', 'nutritionist'], default: 'user' }
+  role: { type: String, enum: ['user', 'admin', 'trainer', 'nutritionist'], default: 'user' },
+  resetPasswordOTP: { type: String },
+  resetPasswordOTPExpires: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

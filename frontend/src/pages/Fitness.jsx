@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, Plus, TrendingUp, Info, X, Zap, Target, HeartPulse } from 'lucide-react';
 import Confetti from 'react-confetti';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import axiosConfig from '../api/axiosConfig';
 import dashboardBg from '../assets/backgrounds/dashboard_bg.png';
 

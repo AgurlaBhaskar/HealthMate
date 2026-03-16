@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { Activity, Flame, HeartPulse, Apple, ChevronRight, Bell } from 'lucide-react';
 import axiosConfig from '../api/axiosConfig';
 import dashboardBg from '../assets/backgrounds/dashboard_bg.png';
